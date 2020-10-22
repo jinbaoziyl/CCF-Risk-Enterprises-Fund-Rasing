@@ -23,6 +23,13 @@ def gen_base_feat():
     else:
         df_base_info = pd.read_csv(t_base_info, header=0)
         # 特征提取
+        del df_base_info['industryphy']
+        del df_base_info['opscope']
+        del df_base_info['dom']
+        del df_base_info['protype']
+        del df_base_info['oploc']
+        del df_base_info['opfrom']
+        del df_base_info['opto']
 
         pickle.dump(df_base_info, open(dump_path, 'wb'))
     return df_base_info
@@ -34,6 +41,12 @@ def gen_anreport_feat():
     else:
         df_anreport_info = pd.read_csv(t_annual_report_info, header=0)
         # 特征提取
+        del df_anreport_info['BUSSTNAME']
+        del df_anreport_info['MEMNUM']
+        del df_anreport_info['FARNUM']
+        del df_anreport_info['ANNNEWMEMNUM']
+        del df_anreport_info['ANNREDMEMNUM']
+        del df_anreport_info['ANCHEYEAR']
 
         pickle.dump(df_anreport_info, open(dump_path, 'wb'))
     return df_anreport_info
@@ -45,6 +58,9 @@ def gen_tax_feat():
     else:
         df_tax_info = pd.read_csv(t_tax_info, header=0)
         # 特征提取
+        del df_tax_info['START_DATE']
+        del df_tax_info['END_DATE']
+        del df_tax_info['TAX_CATEGORIES']
 
         pickle.dump(df_tax_info, open(dump_path, 'wb'))
     return df_tax_info
@@ -56,6 +72,9 @@ def gen_change_feat():
     else:
         df_change_info = pd.read_csv(t_change_info, header=0)
         # 特征提取
+        del df_change_info['bgq']
+        del df_change_info['bgh']
+        del df_change_info['bgrq']
 
         pickle.dump(df_change_info, open(dump_path, 'wb'))
     return df_change_info
@@ -67,6 +86,8 @@ def gen_news_feat():
     else:
         df_news_info = pd.read_csv(t_news_info, header=0)
         # 特征提取
+        del df_news_info['positive_negtive']
+        del df_news_info['public_date']
 
         pickle.dump(df_news_info, open(dump_path, 'wb'))
     return df_news_info
@@ -98,11 +119,11 @@ def making_eval_data():
     if is_update == False:
         eval_set = pickle.load(open(dump_path, 'rb'))
     else:
-        eval_feat = gen_eval_feat()[0:1000]
+        eval_feat = gen_eval_feat()
         other_feat = gen_other_feat()
         news_feat = gen_news_feat()
         change_feat = gen_change_feat()
-        tax_feat = gen_tax_feat()
+        # tax_feat = gen_tax_feat()
         anreport_feat = gen_anreport_feat()
         base_feat = gen_base_feat()
 
@@ -110,7 +131,7 @@ def making_eval_data():
         eval_set = pd.merge(eval_feat, other_feat, how='left', on='id')
         eval_set = pd.merge(eval_set, news_feat, how='left', on='id')
         eval_set = pd.merge(eval_set, change_feat, how='left', on='id')
-        eval_set = pd.merge(eval_set, tax_feat, how='left', on='id')
+        # eval_set = pd.merge(eval_set, tax_feat, how='left', on='id')
         eval_set = pd.merge(eval_set, anreport_feat, how='left', on='id')
         eval_set = pd.merge(eval_set, base_feat, how='left', on='id')
 

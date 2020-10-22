@@ -13,7 +13,7 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-train_file = './pre_data/training1.pkl'
+train_file = './pre_data/training.pkl'
 data_set = pickle.load(open(train_file,'rb'))
 data_set.fillna(0.,inplace=True)
 

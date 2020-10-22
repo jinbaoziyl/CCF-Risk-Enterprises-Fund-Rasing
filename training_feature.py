@@ -23,6 +23,13 @@ def gen_base_feat():
     else:
         df_base_info = pd.read_csv(t_base_info, header=0)
         # 特征提取
+        del df_base_info['industryphy']
+        del df_base_info['opscope']
+        del df_base_info['dom']
+        del df_base_info['protype']
+        del df_base_info['oploc']
+        del df_base_info['opfrom']
+        del df_base_info['opto']
 
         pickle.dump(df_base_info, open(dump_path, 'wb'))
     return df_base_info
@@ -34,6 +41,13 @@ def gen_anreport_feat():
     else:
         df_anreport_info = pd.read_csv(t_annual_report_info, header=0)
         # 特征提取
+        del df_anreport_info['BUSSTNAME']
+        del df_anreport_info['MEMNUM']
+        del df_anreport_info['FARNUM']
+        del df_anreport_info['ANNNEWMEMNUM']
+        del df_anreport_info['ANNREDMEMNUM']
+        del df_anreport_info['ANCHEYEAR']
+
 
         pickle.dump(df_anreport_info, open(dump_path, 'wb'))
     return df_anreport_info
@@ -45,6 +59,9 @@ def gen_tax_feat():
     else:
         df_tax_info = pd.read_csv(t_tax_info, header=0)
         # 特征提取
+        del df_tax_info['START_DATE']
+        del df_tax_info['END_DATE']
+        del df_tax_info['TAX_CATEGORIES']
 
         pickle.dump(df_tax_info, open(dump_path, 'wb'))
     return df_tax_info
@@ -56,6 +73,9 @@ def gen_change_feat():
     else:
         df_change_info = pd.read_csv(t_change_info, header=0)
         # 特征提取
+        del df_change_info['bgq']
+        del df_change_info['bgh']
+        del df_change_info['bgrq']
 
         pickle.dump(df_change_info, open(dump_path, 'wb'))
     return df_change_info
@@ -67,6 +87,8 @@ def gen_news_feat():
     else:
         df_news_info = pd.read_csv(t_news_info, header=0)
         # 特征提取
+        del df_news_info['positive_negtive']
+        del df_news_info['public_date']
 
         pickle.dump(df_news_info, open(dump_path, 'wb'))
     return df_news_info
@@ -94,6 +116,7 @@ def gen_label_feat():
     return df_label_info
 
 def making_training_data():
+    dump_path = "./pre_data/training.pkl"
     dump_path1 = "./pre_data/training1.pkl"
     dump_path2 = "./pre_data/training2.pkl"
     dump_path3 = "./pre_data/training3.pkl"
@@ -106,7 +129,7 @@ def making_training_data():
         other_feat = gen_other_feat()
         news_feat = gen_news_feat()
         change_feat = gen_change_feat()
-        tax_feat = gen_tax_feat()
+        # tax_feat = gen_tax_feat()
         anreport_feat = gen_anreport_feat()
         base_feat = gen_base_feat()
 
@@ -114,26 +137,27 @@ def making_training_data():
         training_set = pd.merge(label_feat, other_feat, how='left', on='id')
         training_set = pd.merge(training_set, news_feat, how='left', on='id')
         training_set = pd.merge(training_set, change_feat, how='left', on='id')
-        training_set = pd.merge(training_set, tax_feat, how='left', on='id')
+        # training_set = pd.merge(training_set, tax_feat, how='left', on='id')
         training_set = pd.merge(training_set, anreport_feat, how='left', on='id')
         training_set = pd.merge(training_set, base_feat, how='left', on='id')
         print(training_set.shape)
 
         # print(training_set.shape[0], training_set.shape[1])
         # print(training_set.tail(2))
-        section_size = training_set.shape[0] // 4
-        pickle.dump(training_set[0:section_size], open(dump_path1, 'wb'))
-        pickle.dump(training_set[section_size:2*section_size], open(dump_path2, 'wb'))
-        pickle.dump(training_set[2*section_size:3*section_size], open(dump_path3, 'wb'))
-        pickle.dump(training_set[3*section_size:-1], open(dump_path4, 'wb'))
+        # section_size = training_set.shape[0] // 4
+        pickle.dump(training_set, open(dump_path, 'wb'))
+        # pickle.dump(training_set[0:section_size], open(dump_path1, 'wb'))
+        # pickle.dump(training_set[section_size:2*section_size], open(dump_path2, 'wb'))
+        # pickle.dump(training_set[2*section_size:3*section_size], open(dump_path3, 'wb'))
+        # pickle.dump(training_set[3*section_size:-1], open(dump_path4, 'wb'))
 
         feat_id = {i:fea for i ,fea in enumerate(list(training_set.columns))}
         print(feat_id)
 
-    return training_set.head()
+    return training_set
 
 if __name__ == '__main__':
     df_train = making_training_data()
-    print(df_train)
+    print(df_train.info())
     # print(df_train.head(10))
-    # print(df_train.values.shape)
+    print(df_train.values.shape)
