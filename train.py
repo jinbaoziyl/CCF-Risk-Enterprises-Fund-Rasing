@@ -66,8 +66,11 @@ print("kflod rmse: {}\n mean rmse : {}".format(rmse_list, np.mean(np.array(rmse_
 
 
 pred = np.mean(np.array(sub_pred),axis=0)
-sub_df.loc[:,'pred'] = pred
-sub_df.to_csv('submission.csv',sep=',',header=None,index=False,encoding='utf8')
+pcol =pd.DataFrame(pred)
+print(pred)
+sub_df = pd.concat([sub_df, pcol], axis=1)
+# sub_df.to_csv('submission.csv',sep=',',header=True,columns=['id', 'score'],index=False,encoding='utf8')
+sub_df.to_csv('submission.csv',sep=',',header=False,index=False,encoding='utf8')
 
 
 
