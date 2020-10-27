@@ -172,12 +172,9 @@ def gen_tax_feat():
             else:
                 tax_it_dict[e] = cnt 
                 cnt += 1
-        # print("item size, ", cnt)
-        # print(tax_it_dict)  
-
+ 
         df_tax_info['TAX_ITEMS'] = df_tax_info['TAX_ITEMS'].map(tax_it_dict)
         df_tax_info['TAXATION_BASIS'] = df_tax_info['TAXATION_BASIS'].apply(np.log)
-
         del df_tax_info['TAXATION_BASIS']
 
         df_tax_info_cp = df_tax_info.copy()
@@ -187,15 +184,39 @@ def gen_tax_feat():
         df_tax_cg_amount_cp = df_tax_cg_info_cp[['id','TAX_CATEGORIES', 'DEDUCTION', 'TAX_AMOUNT']].groupby(['id','TAX_CATEGORIES'], as_index=False).sum()
 
         df_tax_cg_amount_cp = df_tax_cg_amount_cp.pivot(index='id', columns='TAX_CATEGORIES', values=['DEDUCTION', 'TAX_AMOUNT']).reset_index()
-        df_tax_mg = pd.concat([df_tax_amount_cp, df_tax_cg_amount_cp[['DEDUCTION', 'TAX_AMOUNT']]], axis=1)
+        len_deduction = len(df_tax_cg_amount_cp['DEDUCTION'].columns)
+        len_tax_amount = len(df_tax_cg_amount_cp['TAX_AMOUNT'].columns)
+
+        for i in range(len_deduction):
+            df_tmp = pd.DataFrame()
+            df_tmp.loc[:,'cg_deduction'+str(i)] = df_tax_cg_amount_cp['DEDUCTION', i]
+            df_tax_amount_cp = pd.concat([df_tax_amount_cp, df_tmp], axis=1)
+
+        for i in range(len_tax_amount):
+            df_tmp = pd.DataFrame()
+            df_tmp.loc[:,'cg_tax_amount'+str(i)] = df_tax_cg_amount_cp['TAX_AMOUNT', i]
+            df_tax_amount_cp = pd.concat([df_tax_amount_cp, df_tmp], axis=1)
+
 
         df_tax_it_info_cp = df_tax_info.copy()
         df_tax_it_amount_cp = df_tax_cg_info_cp[['id','TAX_ITEMS', 'DEDUCTION', 'TAX_AMOUNT']].groupby(['id','TAX_ITEMS'], as_index=False).sum()
-        df_tax_it_amount_cp = df_tax_it_amount_cp.pivot(index='id', columns='TAX_ITEMS', values=['DEDUCTION', 'TAX_AMOUNT']).reset_index()
-        df_tax_mg = pd.concat([df_tax_mg, df_tax_it_amount_cp[['DEDUCTION', 'TAX_AMOUNT']]], axis=1)
 
-        pickle.dump(df_tax_mg, open(dump_path, 'wb'))
-    return df_tax_mg
+        df_tax_it_amount_cp = df_tax_it_amount_cp.pivot(index='id', columns='TAX_ITEMS', values=['DEDUCTION', 'TAX_AMOUNT']).reset_index()
+        len_deduction = len(df_tax_it_amount_cp['DEDUCTION'].columns)
+        len_tax_amount = len(df_tax_it_amount_cp['TAX_AMOUNT'].columns)
+
+        for i in range(len_deduction):
+            df_tmp = pd.DataFrame()
+            df_tmp.loc[:,'it_deduction'+str(i)] = df_tax_it_amount_cp['DEDUCTION', i]
+            df_tax_amount_cp = pd.concat([df_tax_amount_cp, df_tmp], axis=1)
+
+        for i in range(len_tax_amount):
+            df_tmp = pd.DataFrame()
+            df_tmp.loc[:,'it_tax_amount'+str(i)] = df_tax_it_amount_cp['TAX_AMOUNT', i]
+            df_tax_amount_cp = pd.concat([df_tax_amount_cp, df_tmp], axis=1)
+
+        pickle.dump(df_tax_amount_cp, open(dump_path, 'wb'))
+    return df_tax_amount_cp
 
 def gen_change_feat():
     dump_path = "./pre_data/train_change_info.pkl"
@@ -282,25 +303,24 @@ def making_training_data():
         training_set = training_set.groupby(['id'], as_index=False).mean()
         print("begin shape", training_set.shape)
         news_feat = gen_news_feat()
-        # training_set = pd.merge(training_set, news_feat, how='left', on='id')
-        # print("news shape", training_set.shape)
+        training_set = pd.merge(training_set, news_feat, how='left', on='id')
+        print("news shape", training_set.shape)
 
-        # change_feat = gen_change_feat()
-        # training_set = pd.merge(training_set, change_feat, how='left', on='id')
-        # print("change shape", training_set.shape)
+        change_feat = gen_change_feat()
+        training_set = pd.merge(training_set, change_feat, how='left', on='id')
+        print("change shape", training_set.shape)
 
-        # df_tax_info = gen_tax_feat()
-        # training_set = pd.merge(training_set, df_tax_info, how='left', on='id')
-        # print("tax shape", training_set.shape)
+        df_tax_info = gen_tax_feat()
+        training_set = pd.merge(training_set, df_tax_info, how='left', on='id')
+        print("tax shape", training_set.shape)
 
-        # anreport_feat = gen_anreport_feat()
-        # training_set = pd.merge(training_set, anreport_feat, how='left', on='id')
-        # training_set.info()
-        # print("anreport shape", training_set.shape)
+        anreport_feat = gen_anreport_feat()
+        training_set = pd.merge(training_set, anreport_feat, how='left', on='id')
+        print("anreport shape", training_set.shape)
 
-        # base_feat = gen_base_feat()
-        # training_set = pd.merge(training_set, base_feat, how='left', on='id')
-        # print("base shape", training_set.shape)
+        base_feat = gen_base_feat()
+        training_set = pd.merge(training_set, base_feat, how='left', on='id')
+        print("base shape", training_set.shape)
 
         pickle.dump(training_set, open(dump_path, 'wb'))
 
