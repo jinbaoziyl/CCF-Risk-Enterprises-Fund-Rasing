@@ -29,7 +29,6 @@ def check_date(str):
         datetime.datetime.strptime(str[0:10], "%Y-%m-%d")
         return True
     except Exception as e:
-        print(e)
         return False
 
 
