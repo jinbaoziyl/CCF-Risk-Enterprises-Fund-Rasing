@@ -310,9 +310,9 @@ def making_eval_data():
         training_set = pd.merge(training_set, change_feat, how='left', on='id')
         print("change shape", training_set.shape)
 
-        # df_tax_info = gen_tax_feat()
-        # training_set = pd.merge(training_set, df_tax_info, how='left', on='id')
-        # print("tax shape", training_set.shape)
+        df_tax_info = gen_tax_feat()
+        training_set = pd.merge(training_set, df_tax_info, how='left', on='id')
+        print("tax shape", training_set.shape)
 
         anreport_feat = gen_anreport_feat()
         training_set = pd.merge(training_set, anreport_feat, how='left', on='id')

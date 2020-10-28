@@ -242,7 +242,7 @@ def gen_news_feat():
         df_news_info = pickle.load(open(dump_path, 'rb'))
     else:
         df_news_info = pd.read_csv(t_news_info, header=0)
-        dict_atitude = {"积极": 1, "中立": 0.1, "消极": -1}
+        dict_atitude = {"积极": 1, "中立": 0.5, "消极": -1}
         df_news_info['positive_negtive'] = df_news_info['positive_negtive'].map(lambda x : dict_atitude[x])
         # public date 转变成迄今为止发生时间
         cmp_date = "2020-10-09"
@@ -310,9 +310,9 @@ def making_training_data():
         training_set = pd.merge(training_set, change_feat, how='left', on='id')
         print("change shape", training_set.shape)
 
-        # df_tax_info = gen_tax_feat()
-        # training_set = pd.merge(training_set, df_tax_info, how='left', on='id')
-        # print("tax shape", training_set.shape)
+        df_tax_info = gen_tax_feat()
+        training_set = pd.merge(training_set, df_tax_info, how='left', on='id')
+        print("tax shape", training_set.shape)
 
         anreport_feat = gen_anreport_feat()
         training_set = pd.merge(training_set, anreport_feat, how='left', on='id')
