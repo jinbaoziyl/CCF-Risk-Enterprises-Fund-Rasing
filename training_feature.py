@@ -3,6 +3,8 @@ import numpy as np
 import pickle
 import os
 from util import *
+from tqdm.notebook import tqdm
+from sklearn.preprocessing import LabelEncoder
 
 t_base_info = "./dataset/train/base_info.csv"
 t_annual_report_info = "./dataset/train/annual_report_info.csv"
@@ -16,6 +18,49 @@ is_update = True
 
 if not os.path.exists("./pre_data"):
     os.mkdir("./pre_data")
+
+def gen_base_feat_v1():
+    dump_path = "./pre_data/train_base_info.pkl"
+    if os.path.exists(dump_path) and is_update is not True:
+        base_info = pickle.load(open(dump_path, 'rb'))
+    else:
+        base_info = pd.read_csv(t_base_info, header=0)
+
+        del base_info['ptbusscope']
+        del base_info['midpreindcode']
+        del base_info['dom']
+        del base_info['opscope']  # 后面可以分词后用 svd 抽取特征, 但感觉效果不大
+
+        base_info['opfrom'] = pd.to_datetime(base_info.opfrom)
+        base_info['opfrom_year'] = base_info['opfrom'].dt.year.astype('int')
+
+        base_info['opto'] = pd.to_datetime(base_info.opto)
+        base_info['opto_year'] = base_info['opto'].dt.year.fillna(-1).astype('int')
+
+        del base_info['opfrom']
+        del base_info['opto']
+
+        for col in tqdm(['industryco', 'enttypeitem', 'compform', 'venind', 
+                        'enttypeminu', 'protype']):
+            base_info[col] = base_info[col].fillna(-1).astype('int')
+
+        for col in tqdm(base_info.select_dtypes(['float64']).columns):
+            base_info[col] = base_info[col].fillna(base_info[col].median())
+
+        base_info['opform'] = base_info['opform'].replace('01', '01-以个人财产出资').replace('02', '02-以家庭共有财产作为个人出资')
+
+        # 数据比较长尾, label encoding 和 freq 处理
+        for col in tqdm(['industryphy', 'opform', 'oploc', 'orgid', 'jobid', 'oplocdistrict',
+                        'enttypegb', 'industryco', 'enttype', 'enttypeitem']):
+            lbl = LabelEncoder()
+            base_info[col] = lbl.fit_transform(base_info[col].astype(str))
+            vc = base_info[col].value_counts(dropna=True, normalize=True).to_dict()
+            base_info[f'{col}_freq'] = base_info[col].map(vc)
+        del base_info['forreccap']
+        del base_info['forregcap']
+        del base_info['protype']
+        del base_info['congro']
+    return base_info
 
 def gen_base_feat():
     dump_path = "./pre_data/train_base_info.pkl"
@@ -318,7 +363,7 @@ def making_training_data():
         training_set = pd.merge(training_set, anreport_feat, how='left', on='id')
         print("anreport shape", training_set.shape)
 
-        base_feat = gen_base_feat()
+        base_feat = gen_base_feat_v1()
         training_set = pd.merge(training_set, base_feat, how='left', on='id')
         print("base shape", training_set.shape)
 
