@@ -9,8 +9,13 @@ import pickle
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import StratifiedKFold,KFold,RepeatedKFold
 from sklearn.linear_model import BayesianRidge
-
 from sklearn.metrics import mean_squared_error
+from sklearn.linear_model import LinearRegression
+
+from heamy.dataset import Dataset
+from heamy.estimator import Regressor, Classifier
+from heamy.pipeline import ModelsPipeline
+
 import time
 import warnings
 
@@ -51,7 +56,7 @@ param = {'num_leaves': 120,
          "metric": 'mse',
          "lambda_l1": 0.1,
          "verbosity": -1}#模型参数，可以修改
-folds = KFold(n_splits=5, shuffle=True, random_state=2018)#5折交叉验证
+folds = KFold(n_splits=5, shuffle=True, random_state=2020)#5折交叉验证
 oof_lgb = np.zeros(len(label))#存放训练集的预测结果
 predictions_lgb = np.zeros(len(sub_df))#存放测试集的预测结果
 
@@ -83,7 +88,7 @@ xgb_params = {'eta': 0.005,
               'eval_metric': 'rmse', 
               'silent': True, 
               'nthread': 4}#xgb的参数，可以自己改
-folds = KFold(n_splits=5, shuffle=True, random_state=2018)#5折交叉验证
+folds = KFold(n_splits=5, shuffle=True, random_state=2020)#5折交叉验证
 oof_xgb = np.zeros(len(label))#用于存放训练集的预测
 predictions_xgb = np.zeros(len(sub_df))#用于存放测试集的预测
 
@@ -106,13 +111,40 @@ for fold_, (trn_idx, val_idx) in enumerate(folds.split(X_train, y_train)):
 
 print("xgb CV score: {:<8.8f}".format(mean_squared_error(oof_xgb, label)))
 
+## logic regression
+folds = KFold(n_splits=5, shuffle=True, random_state=2020)#5折交叉验证
+oof_lr = np.zeros(len(label))#用于存放训练集的预测
+predictions_lr = np.zeros(len(sub_df))#用于存放测试集的预测
+
+X_train = training
+y_train = label
+for fold_, (trn_idx, val_idx) in enumerate(folds.split(X_train, y_train)):
+    print("xgb fold n°{}".format(fold_+1))
+    trn_data_x = X_train[trn_idx]
+    trn_data_y = y_train[trn_idx]
+    val_data_x = X_train[val_idx]
+    val_data_y = y_train[val_idx]
+
+    clf = LinearRegression()
+    clf.fit(trn_data_x, trn_data_y)
+    
+    oof_lr[val_idx] = clf.predict(val_data_x)
+    predictions_lr += clf.predict(test_data) / folds.n_splits
+    
+    print("===========oof_lr Result============")
+    print(oof_lr)
+    print("===========predictions_lr Result============")
+    print(predictions_lr)
+
+print("lr CV score: {:<8.8f}".format(mean_squared_error(oof_lr, label)))
+
 
 # 将lgb和xgb的结果进行stacking（叠加）
-train_stack = np.vstack([oof_lgb,oof_xgb]).transpose()#训练集2列特征
-test_stack = np.vstack([predictions_lgb, predictions_xgb]).transpose()#测试集2列特征
+train_stack = np.vstack([oof_lgb,oof_xgb, oof_lr]).transpose()#训练集2列特征
+test_stack = np.vstack([predictions_lgb, predictions_xgb, predictions_lr]).transpose()#测试集2列特征
 
 #贝叶斯分类器也使用交叉验证的方法，5折，重复2次，主要是避免过拟合
-folds_stack = RepeatedKFold(n_splits=5, n_repeats=2, random_state=2018)
+folds_stack = RepeatedKFold(n_splits=5, n_repeats=2, random_state=2020)
 oof_stack = np.zeros(train_stack.shape[0])#存放训练集中验证集的预测结果
 predictions = np.zeros(test_stack.shape[0])#存放测试集的预测结果
 
@@ -122,7 +154,7 @@ for fold_, (trn_idx, val_idx) in enumerate(folds_stack.split(train_stack,label))
     trn_data, trn_y = train_stack[trn_idx], label[trn_idx]#划分训练集的80%
     val_data, val_y = train_stack[val_idx], label[val_idx]#划分训练集的20%做验证集
     
-    clf_3 = BayesianRidge()
+    clf_3 = LinearRegression()
     clf_3.fit(trn_data, trn_y)#贝叶斯训练过程，sklearn中的。
     
     oof_stack[val_idx] = clf_3.predict(val_data)#对验证集有一个预测，用于后面计算模型的偏差
