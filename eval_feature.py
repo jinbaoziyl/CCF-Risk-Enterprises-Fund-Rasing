@@ -170,22 +170,26 @@ def gen_anreport_feat():
         df_anreport_info = pickle.load(open(dump_path, 'rb'))
     else:
         df_anreport_info = pd.read_csv(t_annual_report_info, header=0)
-
-        dict_year = {"2015.0": 0, "2016.0": 1, "2017.0": 2, "2018.0": 3}
+        dict_year = {"2015.0": 2015, "2016.0": 2016, "2017.0": 2017, "2018.0": 2018}
         df_anreport_info['ANCHEYEAR'] = df_anreport_info['ANCHEYEAR'].map(lambda x : dict_year[str(x)])
-        del df_anreport_info['MEMNUM']
-        del df_anreport_info['FARNUM']
-        del df_anreport_info['ANNNEWMEMNUM']
-        del df_anreport_info['ANNREDMEMNUM']
+        # del df_anreport_info['MEMNUM']
+        # del df_anreport_info['FARNUM']
+        # del df_anreport_info['ANNNEWMEMNUM']
+        # del df_anreport_info['ANNREDMEMNUM']
 
-        df_anreport_info['BUSSTNAME'].value_counts() 
-        dict_bsnm = { "开业": 1, "歇业": 2, "停业": 3, "清算": 4}
-        df_anreport_info['BUSSTNAME'] = df_anreport_info['BUSSTNAME'].map(dict_bsnm)
-        df_anreport_info['BUSSTNAME'].fillna(0, inplace=True)
+        # df_anreport_info['BUSSTNAME'].value_counts() 
+        # dict_bsnm = { "开业": 1, "歇业": 2, "停业": 3, "清算": 4}
+        # df_anreport_info['BUSSTNAME'] = df_anreport_info['BUSSTNAME'].map(dict_bsnm)
+        # df_anreport_info['BUSSTNAME'].fillna(0, inplace=True)
+        df_af = pd.get_dummies(df_anreport_info['BUSSTNAME'], prefix='busstname')  
+        df_anreport_info = pd.concat([df_anreport_info, df_af], axis=1)
+        del df_anreport_info['BUSSTNAME']
+
         df_anreport_info = df_anreport_info.groupby(['id'], as_index=False).sum()
 
         pickle.dump(df_anreport_info, open(dump_path, 'wb'))
     return df_anreport_info
+
 
 def gen_tax_feat():
     dump_path = "./pre_data/eval_tax_info.pkl"
@@ -268,14 +272,28 @@ def gen_change_feat():
         df_change_info = pickle.load(open(dump_path, 'rb'))
     else:
         # TODO: 变更信息如何处理  这里直接删除 只保留变更时间 #
+        # df_change_info = pd.read_csv(t_change_info, header=0)
+        # # del df_change_info['bgxmdm']
+        # del df_change_info['bgq']
+        # del df_change_info['bgh']
+        # del df_change_info['bgrq']
+
+        # df_change_info['bgcnt'] = 1
+        # df_change_info = df_change_info.groupby(['id'], as_index=False).sum()
         df_change_info = pd.read_csv(t_change_info, header=0)
-        del df_change_info['bgxmdm']
         del df_change_info['bgq']
         del df_change_info['bgh']
-        del df_change_info['bgrq']
 
         df_change_info['bgcnt'] = 1
-        df_change_info = df_change_info.groupby(['id'], as_index=False).sum()
+        df_tmp = df_change_info[['id', 'bgcnt']]
+        df_tmp = df_tmp.groupby(['id'], as_index=False).sum()
+
+        def get_last_time(x):
+            return x.sort_values(ascending = False)[:1]
+        df_bgrq = df_change_info['bgrq'].groupby(df_change_info['id']).apply(get_last_time)
+
+        df_change_info = pd.merge(df_tmp, df_bgrq, how='left', on='id')
+        df_change_info['bgrq'] = df_change_info['bgrq'].apply(lambda x: str(x)[:4])
 
         pickle.dump(df_change_info, open(dump_path, 'wb'))
     return df_change_info
@@ -289,11 +307,8 @@ def gen_news_feat():
         dict_atitude = {"积极": 1, "中立": 0.1, "消极": -1}
         df_news_info['positive_negtive'] = df_news_info['positive_negtive'].map(lambda x : dict_atitude[x])
         # public date 转变成迄今为止发生时间
-        cmp_date = "2020-10-09"
-        df_news_info['public_date'] = df_news_info['public_date'].map(lambda x: check_date(x))
-        df_news_info['public_date'].value_counts()
-
         # 处理"xx小时前" 数据统一为昨天更新 
+        cmp_date = "2020-10-09"
         def handle_public_date(str):
             if(check_date(str) is False):
                 return 1

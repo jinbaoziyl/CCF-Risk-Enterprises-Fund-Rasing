@@ -273,14 +273,33 @@ def gen_change_feat():
         df_change_info = pickle.load(open(dump_path, 'rb'))
     else:
         # TODO: 变更信息如何处理  这里直接删除 只保留变更时间 #
+        # df_change_info = pd.read_csv(t_change_info, header=0)
+        # # del df_change_info['bgxmdm']
+        # del df_change_info['bgq']
+        # del df_change_info['bgh']
+        # del df_change_info['bgrq']
+
+        # def get_f5(x):
+        #     return x.sort_values(ascending = False)[:1]
+        # df_bgrq = df_change_info[['id', 'bgrq']].groupby(df['id']).apply(get_f5)
+        # print(df_bgrq)
+
+        # df_change_info['bgcnt'] = 1
+        # df_change_info = df_change_info.groupby(['id'], as_index=False).sum()
         df_change_info = pd.read_csv(t_change_info, header=0)
-        del df_change_info['bgxmdm']
         del df_change_info['bgq']
         del df_change_info['bgh']
-        del df_change_info['bgrq']
 
         df_change_info['bgcnt'] = 1
-        df_change_info = df_change_info.groupby(['id'], as_index=False).sum()
+        df_tmp = df_change_info[['id', 'bgcnt']]
+        df_tmp = df_tmp.groupby(['id'], as_index=False).sum()
+
+        def get_last_time(x):
+            return x.sort_values(ascending = False)[:1]
+        df_bgrq = df_change_info['bgrq'].groupby(df_change_info['id']).apply(get_last_time)
+
+        df_change_info = pd.merge(df_tmp, df_bgrq, how='left', on='id')
+        df_change_info['bgrq'] = df_change_info['bgrq'].apply(lambda x: str(x)[:4])
 
         pickle.dump(df_change_info, open(dump_path, 'wb'))
     return df_change_info
@@ -293,12 +312,10 @@ def gen_news_feat():
         df_news_info = pd.read_csv(t_news_info, header=0)
         dict_atitude = {"积极": 1, "中立": 0.5, "消极": -1}
         df_news_info['positive_negtive'] = df_news_info['positive_negtive'].map(lambda x : dict_atitude[x])
+        
         # public date 转变成迄今为止发生时间
-        cmp_date = "2020-10-09"
-        df_news_info['public_date'] = df_news_info['public_date'].map(lambda x: check_date(x))
-        df_news_info['public_date'].value_counts()
-
         # 处理"xx小时前" 数据统一为昨天更新 
+        cmp_date = "2020-10-09"
         def handle_public_date(str):
             if(check_date(str) is False):
                 return 1
