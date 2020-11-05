@@ -191,6 +191,31 @@ def gen_anreport_feat():
         pickle.dump(df_anreport_info, open(dump_path, 'wb'))
     return df_anreport_info
 
+def gen_tax_feat_v1():
+    dump_path = "./pre_data/train_tax_info.pkl"
+    if os.path.exists(dump_path) and is_update is not True:
+        df_tax_info = pickle.load(open(dump_path, 'rb'))
+    else:
+        df_tax_info = pd.read_csv(t_tax_info, header=0)
+        df_tax_info['TAX_DAYS'] = df_tax_info[['START_DATE', 'END_DATE']].apply(lambda x : days_v1(x['END_DATE'], x['START_DATE']), axis=1)
+
+        del df_tax_info['START_DATE']
+        del df_tax_info['END_DATE']
+
+        df_tax_info_cp = df_tax_info.copy()
+        df_tax_amount_cp = df_tax_info_cp[['id', 'TAX_DAYS', 'TAX_RATE', 'DEDUCTION', 'TAX_AMOUNT', 'TAXATION_BASIS']].groupby(['id'], as_index=False).sum()
+
+        # 加上平均
+        df_tax_amount_cp['arg_tax_rate'] =  df_tax_amount_cp['TAX_RATE'] / df_tax_amount_cp['TAX_DAYS']
+        df_tax_amount_cp['arg_tax_deduction'] =  df_tax_amount_cp['DEDUCTION'] / df_tax_amount_cp['TAX_DAYS']
+        df_tax_amount_cp['arg_tax_amount'] =  df_tax_amount_cp['TAX_AMOUNT'] / df_tax_amount_cp['TAX_DAYS']
+        df_tax_amount_cp['arg_tax_basis'] =  df_tax_amount_cp['TAXATION_BASIS'] / df_tax_amount_cp['TAX_DAYS']
+
+        del df_tax_amount_cp['TAX_DAYS']
+
+        pickle.dump(df_tax_amount_cp, open(dump_path, 'wb'))
+    return df_tax_amount_cp
+
 def gen_tax_feat():
     dump_path = "./pre_data/train_tax_info.pkl"
     if os.path.exists(dump_path) and is_update is not True:
@@ -223,11 +248,15 @@ def gen_tax_feat():
                 cnt += 1
  
         df_tax_info['TAX_ITEMS'] = df_tax_info['TAX_ITEMS'].map(tax_it_dict)
-        df_tax_info['TAXATION_BASIS'] = df_tax_info['TAXATION_BASIS'].apply(np.log)
-        del df_tax_info['TAXATION_BASIS']
+        # df_tax_info['TAXATION_BASIS'] = df_tax_info['TAXATION_BASIS'].apply(np.log)
+        # del df_tax_info['TAXATION_BASIS']
+
+        df_tax_extra = df_tax_info.copy()
+        df_tax_amount_extra = df_tax_extra[['id', 'TAX_DAYS', 'TAX_RATE', 'DEDUCTION', 'TAX_AMOUNT', 'TAXATION_BASIS']].groupby(['id'], as_index=False).sum()
+
 
         df_tax_info_cp = df_tax_info.copy()
-        df_tax_amount_cp = df_tax_info_cp[['id', 'DEDUCTION', 'TAX_AMOUNT']].groupby(['id'], as_index=False).sum()
+        df_tax_amount_cp = df_tax_info_cp[['id', 'DEDUCTION', 'TAX_AMOUNT', 'TAXATION_BASIS']].groupby(['id'], as_index=False).sum()
 
         df_tax_cg_info_cp = df_tax_info.copy()
         df_tax_cg_amount_cp = df_tax_cg_info_cp[['id','TAX_CATEGORIES', 'DEDUCTION', 'TAX_AMOUNT']].groupby(['id','TAX_CATEGORIES'], as_index=False).sum()
@@ -263,6 +292,12 @@ def gen_tax_feat():
             df_tmp = pd.DataFrame()
             df_tmp.loc[:,'it_tax_amount'+str(i)] = df_tax_it_amount_cp['TAX_AMOUNT', i]
             df_tax_amount_cp = pd.concat([df_tax_amount_cp, df_tmp], axis=1)
+
+       # 加上平均
+        df_tax_amount_cp['arg_tax_rate'] =  df_tax_amount_extra['TAX_RATE'] / df_tax_amount_extra['TAX_DAYS']
+        df_tax_amount_cp['arg_tax_deduction'] =  df_tax_amount_extra['DEDUCTION'] / df_tax_amount_extra['TAX_DAYS']
+        df_tax_amount_cp['arg_tax_amount'] =  df_tax_amount_extra['TAX_AMOUNT'] / df_tax_amount_extra['TAX_DAYS']
+        df_tax_amount_cp['arg_tax_basis'] =  df_tax_amount_extra['TAXATION_BASIS'] / df_tax_amount_extra['TAX_DAYS']
 
         pickle.dump(df_tax_amount_cp, open(dump_path, 'wb'))
     return df_tax_amount_cp

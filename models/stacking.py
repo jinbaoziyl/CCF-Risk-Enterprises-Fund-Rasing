@@ -154,13 +154,7 @@ for fold_, (trn_idx, val_idx) in enumerate(folds_stack.split(train_stack,label))
     trn_data, trn_y = train_stack[trn_idx], label[trn_idx]#划分训练集的80%
     val_data, val_y = train_stack[val_idx], label[val_idx]#划分训练集的20%做验证集
     
-<<<<<<< HEAD
     clf_3 = LinearRegression()
-=======
-    clf_3 = BayesianRidge()
-    # from sklearn.linear_model import LogisticRegression
-
->>>>>>> 5db1492b2de5bf0d07ee941f019a8cc57921177e
     clf_3.fit(trn_data, trn_y)#贝叶斯训练过程，sklearn中的。
     
     oof_stack[val_idx] = clf_3.predict(val_data)#对验证集有一个预测，用于后面计算模型的偏差
